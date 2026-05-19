@@ -1,4 +1,6 @@
 flask
 flask-cors
-rembg[gpu]
+rembg
 pillow
+gunicorn
+onnxruntime

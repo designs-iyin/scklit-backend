@@ -9,9 +9,9 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 CORS(app)
 
-# Pre-load the model at startup so first request isn't slow
+# u2netp is the lightweight model (~4x less memory than u2net, fits in 512MB)
 logging.info("Loading rembg model...")
-session = new_session("u2net")
+session = new_session("u2netp")
 logging.info("Model loaded.")
 
 @app.route("/", methods=["GET"])
@@ -46,4 +46,6 @@ def remove_bg():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
