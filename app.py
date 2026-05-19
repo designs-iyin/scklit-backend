@@ -15,10 +15,16 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max
 def too_large(e):
     return jsonify({"error": "File too large. Maximum size is 50MB."}), 413
 
-# Lightweight model — fits in 512MB free tier
-logging.info("Loading rembg model...")
-session = new_session("u2netp")
-logging.info("Model loaded.")
+# Lazy load — model loads on first request, not at startup
+session = None
+
+def get_session():
+    global session
+    if session is None:
+        logging.info("Loading rembg model...")
+        session = new_session("u2netp")
+        logging.info("Model loaded.")
+    return session
 
 MAX_PROCESS_SIZE = 1024  # Process at max 1024px on longest side, then scale result back up
 
@@ -60,7 +66,7 @@ def remove_bg():
         proc_bytes = io.BytesIO()
         process_img.save(proc_bytes, format="PNG")
         proc_bytes.seek(0)
-        result_bytes = remove(proc_bytes.read(), session=session)
+        result_bytes = remove(proc_bytes.read(), session=get_session())
 
         # Load the mask result
         result_img = Image.open(io.BytesIO(result_bytes)).convert("RGBA")
