@@ -1,11 +1,18 @@
 from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
-from rembg import remove
-from PIL import Image
+from rembg import remove, new_session
 import io
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-CORS(app)  # Allow requests from your Netlify site
+CORS(app)
+
+# Pre-load the model at startup so first request isn't slow
+logging.info("Loading rembg model...")
+session = new_session("u2net")
+logging.info("Model loaded.")
 
 @app.route("/", methods=["GET"])
 def health():
@@ -23,7 +30,9 @@ def remove_bg():
 
     try:
         input_bytes = file.read()
-        output_bytes = remove(input_bytes)
+        logging.info(f"Processing image: {file.filename}, size: {len(input_bytes)} bytes")
+        output_bytes = remove(input_bytes, session=session)
+        logging.info("Image processed successfully")
 
         return send_file(
             io.BytesIO(output_bytes),
@@ -33,6 +42,7 @@ def remove_bg():
         )
 
     except Exception as e:
+        logging.error(f"Error processing image: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
